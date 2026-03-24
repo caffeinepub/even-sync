@@ -12,6 +12,7 @@ import { PaymentTracking } from "./pages/PaymentTracking";
 import { Profile } from "./pages/Profile";
 import { Reports } from "./pages/Reports";
 import { SettingsPage } from "./pages/SettingsPage";
+import { VendorRegistration } from "./pages/VendorRegistration";
 import { Vendors } from "./pages/Vendors";
 import { Venues } from "./pages/Venues";
 
@@ -37,6 +38,8 @@ function AppContent() {
         return <Venues />;
       case "vendors":
         return <Vendors />;
+      case "vendor-registration":
+        return <VendorRegistration />;
       case "booths":
         return <BoothAllocation />;
       case "payments":

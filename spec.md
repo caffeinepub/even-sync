@@ -1,24 +1,25 @@
 # Even Sync
 
 ## Current State
-The app has a dashboard with Events, Venues, Vendors, Bookings, Reports, and Settings pages. There is no profile management feature.
+The app has a Vendors page (admin-side) with a table and add/edit/delete dialogs. There is no public-facing vendor self-registration form. The workflow Step 1 (vendor self-registration portal) is listed as a missing feature.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Profile page where users can view and edit their name, email, phone, company, and bio
-- Profile avatar with initials display
-- "Profile" navigation item in the sidebar
+- New `VendorRegistration` page: a multi-field registration form for vendors to submit their details
+- Fields: company name, contact person, email, phone, business category, company description, trade license number, website (optional)
+- Form validation, success confirmation state
+- New nav entry in sidebar: "Vendor Registration" with a ClipboardList icon
+- New page type in Layout and App routing
 
 ### Modify
-- App.tsx to include the Profile page route
-- Layout to add Profile nav item
+- `App.tsx`: add `vendor-registration` case and import
+- `Layout.tsx`: add nav item and page title for `vendor-registration`
 
 ### Remove
 - Nothing
 
 ## Implementation Plan
-1. Create a Profile page component with a form to view/edit user profile fields (name, email, phone, company, bio)
-2. Store profile data in localStorage for persistence
-3. Add Profile to the Page type and navigation in Layout
-4. Wire Profile page in App.tsx
+1. Create `src/frontend/src/pages/VendorRegistration.tsx` with the full registration form
+2. Update `Layout.tsx` to add nav item and page title
+3. Update `App.tsx` to import and route the new page

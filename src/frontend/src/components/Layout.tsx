@@ -6,6 +6,7 @@ import {
   BookOpen,
   Calendar,
   ChevronDown,
+  ClipboardList,
   CreditCard,
   FileCheck,
   LayoutDashboard,
@@ -23,6 +24,7 @@ export type Page =
   | "events"
   | "venues"
   | "vendors"
+  | "vendor-registration"
   | "booths"
   | "payments"
   | "documents"
@@ -43,6 +45,11 @@ const navItems: { id: Page; label: string; icon: React.ElementType }[] = [
   { id: "events", label: "Events", icon: Calendar },
   { id: "venues", label: "Venues", icon: MapPin },
   { id: "vendors", label: "Vendors", icon: Users },
+  {
+    id: "vendor-registration",
+    label: "Vendor Registration",
+    icon: ClipboardList,
+  },
   { id: "booths", label: "Booth Allocation", icon: LayoutGrid },
   { id: "payments", label: "Payments", icon: CreditCard },
   { id: "documents", label: "Documents", icon: FileCheck },
@@ -58,6 +65,7 @@ const pageTitles: Record<Page, string> = {
   events: "Events",
   venues: "Venues",
   vendors: "Vendors",
+  "vendor-registration": "Vendor Registration",
   booths: "Booth Allocation",
   payments: "Payment Tracking",
   documents: "Document Verification",
@@ -180,7 +188,9 @@ export function Layout({ currentPage, onNavigate, children }: LayoutProps) {
                   ? "Welcome back, Sarah. Here's what's happening."
                   : currentPage === "profile"
                     ? "Manage your personal information and preferences."
-                    : `Manage your ${pageTitles[currentPage].toLowerCase()}.`}
+                    : currentPage === "vendor-registration"
+                      ? "Public self-registration portal for new vendors."
+                      : `Manage your ${pageTitles[currentPage].toLowerCase()}.`}
               </p>
             </div>
             {children}

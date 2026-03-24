@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   MapPin,
   Settings,
+  User,
   Users,
   Zap,
 } from "lucide-react";
@@ -20,7 +21,8 @@ export type Page =
   | "vendors"
   | "bookings"
   | "reports"
-  | "settings";
+  | "settings"
+  | "profile";
 
 interface LayoutProps {
   currentPage: Page;
@@ -36,6 +38,7 @@ const navItems: { id: Page; label: string; icon: React.ElementType }[] = [
   { id: "bookings", label: "Bookings", icon: BookOpen },
   { id: "reports", label: "Reports", icon: BarChart3 },
   { id: "settings", label: "Settings", icon: Settings },
+  { id: "profile", label: "Profile", icon: User },
 ];
 
 const pageTitles: Record<Page, string> = {
@@ -46,6 +49,7 @@ const pageTitles: Record<Page, string> = {
   bookings: "Bookings",
   reports: "Reports",
   settings: "Settings",
+  profile: "My Profile",
 };
 
 export function Layout({ currentPage, onNavigate, children }: LayoutProps) {
@@ -119,7 +123,12 @@ export function Layout({ currentPage, onNavigate, children }: LayoutProps) {
             <Bell className="w-5 h-5 text-muted-foreground" />
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full" />
           </button>
-          <div className="flex items-center gap-2.5 cursor-pointer">
+          <button
+            type="button"
+            data-ocid="nav.profile.link"
+            className="flex items-center gap-2.5 cursor-pointer rounded-md px-2 py-1 hover:bg-accent transition-colors"
+            onClick={() => onNavigate("profile")}
+          >
             <Avatar className="w-8 h-8">
               <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
                 SJ
@@ -134,7 +143,7 @@ export function Layout({ currentPage, onNavigate, children }: LayoutProps) {
               </p>
             </div>
             <ChevronDown className="w-4 h-4 text-muted-foreground" />
-          </div>
+          </button>
         </header>
 
         {/* Page content */}
@@ -153,7 +162,9 @@ export function Layout({ currentPage, onNavigate, children }: LayoutProps) {
               <p className="text-sm text-muted-foreground mt-0.5">
                 {currentPage === "dashboard"
                   ? "Welcome back, Sarah. Here's what's happening."
-                  : `Manage your ${pageTitles[currentPage].toLowerCase()}.`}
+                  : currentPage === "profile"
+                    ? "Manage your personal information and preferences."
+                    : `Manage your ${pageTitles[currentPage].toLowerCase()}.`}
               </p>
             </div>
             {children}

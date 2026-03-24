@@ -5,6 +5,7 @@ import { Layout, type Page } from "./components/Layout";
 import { Bookings } from "./pages/Bookings";
 import { Dashboard } from "./pages/Dashboard";
 import { Events } from "./pages/Events";
+import { Profile } from "./pages/Profile";
 import { Reports } from "./pages/Reports";
 import { SettingsPage } from "./pages/SettingsPage";
 import { Vendors } from "./pages/Vendors";
@@ -38,6 +39,8 @@ function AppContent() {
         return <Reports />;
       case "settings":
         return <SettingsPage />;
+      case "profile":
+        return <Profile />;
       default:
         return <Dashboard />;
     }

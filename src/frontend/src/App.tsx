@@ -3,8 +3,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { Layout, type Page } from "./components/Layout";
 import { Bookings } from "./pages/Bookings";
+import { BoothAllocation } from "./pages/BoothAllocation";
+import { CrowdMonitor } from "./pages/CrowdMonitor";
 import { Dashboard } from "./pages/Dashboard";
+import { DocumentVerification } from "./pages/DocumentVerification";
 import { Events } from "./pages/Events";
+import { PaymentTracking } from "./pages/PaymentTracking";
 import { Profile } from "./pages/Profile";
 import { Reports } from "./pages/Reports";
 import { SettingsPage } from "./pages/SettingsPage";
@@ -33,6 +37,14 @@ function AppContent() {
         return <Venues />;
       case "vendors":
         return <Vendors />;
+      case "booths":
+        return <BoothAllocation />;
+      case "payments":
+        return <PaymentTracking />;
+      case "documents":
+        return <DocumentVerification />;
+      case "crowd":
+        return <CrowdMonitor />;
       case "bookings":
         return <Bookings />;
       case "reports":

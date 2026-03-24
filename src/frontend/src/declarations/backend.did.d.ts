@@ -19,6 +19,47 @@ export interface Booking {
 export type BookingStatus = { 'cancelled' : null } |
   { 'pending' : null } |
   { 'confirmed' : null };
+export interface Booth {
+  'status' : BoothStatus,
+  'assignedVendor' : [] | [string],
+  'size' : BoothSize,
+  'zone' : string,
+  'number' : bigint,
+}
+export type BoothSize = { 'large' : null } |
+  { 'small' : null } |
+  { 'medium' : null };
+export type BoothStatus = { 'occupied' : null } |
+  { 'reserved' : null } |
+  { 'available' : null };
+export interface CrowdSession {
+  'safetyStatus' : SafetyStatus,
+  'occupancyPercentage' : number,
+  'zone' : string,
+  'visitorCount' : bigint,
+  'timestamp' : bigint,
+}
+export type Currency = { 'btc' : null } |
+  { 'eth' : null } |
+  { 'eur' : null } |
+  { 'gbp' : null } |
+  { 'icp' : null } |
+  { 'inr' : null } |
+  { 'usd' : null } |
+  { 'other' : string };
+export interface Document {
+  'status' : DocumentStatus,
+  'fileName' : string,
+  'vendorId' : bigint,
+  'docType' : DocumentType,
+}
+export type DocumentStatus = { 'verified' : null } |
+  { 'pending' : null } |
+  { 'rejected' : null };
+export type DocumentType = { 'id' : null } |
+  { 'other' : string } |
+  { 'permit' : null } |
+  { 'license' : null };
 export interface Event {
   'status' : EventStatus,
   'date' : bigint,
@@ -30,10 +71,27 @@ export type EventStatus = { 'upcoming' : null } |
   { 'cancelled' : null } |
   { 'completed' : null } |
   { 'ongoing' : null };
+export interface Payment {
+  'status' : PaymentStatus,
+  'dueDate' : bigint,
+  'currency' : Currency,
+  'vendorId' : bigint,
+  'amount' : number,
+}
+export type PaymentStatus = { 'pending' : null } |
+  { 'paid' : null } |
+  { 'overdue' : null };
+export type SafetyStatus = { 'normal' : null } |
+  { 'caution' : null } |
+  { 'critical' : null };
 export interface Stats {
+  'totalBooths' : bigint,
   'upcomingEvents' : bigint,
   'totalEvents' : bigint,
+  'totalPayments' : bigint,
   'totalVenues' : bigint,
+  'totalVisitorsToday' : bigint,
+  'occupiedBooths' : bigint,
   'totalVendors' : bigint,
 }
 export interface Vendor {
@@ -48,24 +106,41 @@ export interface Venue {
   'location' : string,
 }
 export interface _SERVICE {
+  'addCrowdSession' : ActorMethod<[CrowdSession], undefined>,
+  'assignBooth' : ActorMethod<[bigint, string], undefined>,
   'createBooking' : ActorMethod<[Booking], bigint>,
+  'createBooth' : ActorMethod<[Booth], bigint>,
+  'createDocument' : ActorMethod<[Document], bigint>,
   'createEvent' : ActorMethod<[Event], bigint>,
+  'createPayment' : ActorMethod<[Payment], bigint>,
   'createVendor' : ActorMethod<[Vendor], bigint>,
   'createVenue' : ActorMethod<[Venue], bigint>,
   'deleteEvent' : ActorMethod<[bigint], undefined>,
   'deleteVendor' : ActorMethod<[bigint], undefined>,
   'deleteVenue' : ActorMethod<[bigint], undefined>,
   'getAllBookings' : ActorMethod<[], Array<Booking>>,
+  'getAllBooths' : ActorMethod<[], Array<Booth>>,
+  'getAllCrowdSessions' : ActorMethod<[], Array<CrowdSession>>,
+  'getAllDocuments' : ActorMethod<[], Array<Document>>,
   'getAllEvents' : ActorMethod<[], Array<Event>>,
+  'getAllPayments' : ActorMethod<[], Array<Payment>>,
   'getAllVendors' : ActorMethod<[], Array<Vendor>>,
   'getAllVenues' : ActorMethod<[], Array<Venue>>,
   'getBooking' : ActorMethod<[bigint], Booking>,
   'getBookingsForEvent' : ActorMethod<[bigint], Array<Booking>>,
+  'getBooth' : ActorMethod<[bigint], Booth>,
+  'getCrowdSessionsByZone' : ActorMethod<[string], Array<CrowdSession>>,
+  'getDocument' : ActorMethod<[bigint], Document>,
   'getEvent' : ActorMethod<[bigint], Event>,
+  'getPayment' : ActorMethod<[bigint], Payment>,
   'getStats' : ActorMethod<[], Stats>,
+  'getUpcomingEvents' : ActorMethod<[], Array<Event>>,
   'getVendor' : ActorMethod<[bigint], Vendor>,
   'getVenue' : ActorMethod<[bigint], Venue>,
+  'updateBooth' : ActorMethod<[bigint, Booth], undefined>,
+  'updateDocumentStatus' : ActorMethod<[bigint, DocumentStatus], undefined>,
   'updateEvent' : ActorMethod<[bigint, Event], undefined>,
+  'updatePaymentStatus' : ActorMethod<[bigint, PaymentStatus], undefined>,
   'updateVendor' : ActorMethod<[bigint, Vendor], undefined>,
   'updateVenue' : ActorMethod<[bigint, Venue], undefined>,
 }

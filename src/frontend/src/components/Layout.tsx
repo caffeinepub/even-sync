@@ -1,11 +1,15 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
+  Activity,
   BarChart3,
   Bell,
   BookOpen,
   Calendar,
   ChevronDown,
+  CreditCard,
+  FileCheck,
   LayoutDashboard,
+  LayoutGrid,
   MapPin,
   Settings,
   User,
@@ -19,6 +23,10 @@ export type Page =
   | "events"
   | "venues"
   | "vendors"
+  | "booths"
+  | "payments"
+  | "documents"
+  | "crowd"
   | "bookings"
   | "reports"
   | "settings"
@@ -35,6 +43,10 @@ const navItems: { id: Page; label: string; icon: React.ElementType }[] = [
   { id: "events", label: "Events", icon: Calendar },
   { id: "venues", label: "Venues", icon: MapPin },
   { id: "vendors", label: "Vendors", icon: Users },
+  { id: "booths", label: "Booth Allocation", icon: LayoutGrid },
+  { id: "payments", label: "Payments", icon: CreditCard },
+  { id: "documents", label: "Documents", icon: FileCheck },
+  { id: "crowd", label: "Crowd Monitor", icon: Activity },
   { id: "bookings", label: "Bookings", icon: BookOpen },
   { id: "reports", label: "Reports", icon: BarChart3 },
   { id: "settings", label: "Settings", icon: Settings },
@@ -46,6 +58,10 @@ const pageTitles: Record<Page, string> = {
   events: "Events",
   venues: "Venues",
   vendors: "Vendors",
+  booths: "Booth Allocation",
+  payments: "Payment Tracking",
+  documents: "Document Verification",
+  crowd: "Crowd Monitor",
   bookings: "Bookings",
   reports: "Reports",
   settings: "Settings",
@@ -75,7 +91,7 @@ export function Layout({ currentPage, onNavigate, children }: LayoutProps) {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 py-4 px-3 space-y-0.5">
+        <nav className="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentPage === item.id;

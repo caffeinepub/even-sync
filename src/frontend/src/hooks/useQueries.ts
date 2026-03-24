@@ -1,6 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Booking, Event, Vendor, Venue } from "../backend.d";
-import { BookingStatus, EventStatus } from "../backend.d";
+import type {
+  Booking,
+  Booth,
+  CrowdSession,
+  Document,
+  Event,
+  Payment,
+  Vendor,
+  Venue,
+} from "../backend.d";
+import {
+  BookingStatus,
+  DocumentStatus,
+  EventStatus,
+  PaymentStatus,
+} from "../backend.d";
 import { useActor } from "./useActor";
 
 export function useGetStats() {
@@ -14,6 +28,10 @@ export function useGetStats() {
           totalEvents: 0n,
           totalVenues: 0n,
           totalVendors: 0n,
+          totalBooths: 0n,
+          occupiedBooths: 0n,
+          totalVisitorsToday: 0n,
+          totalPayments: 0n,
         };
       return actor.getStats();
     },
@@ -177,4 +195,131 @@ export function useCreateBooking() {
   });
 }
 
-export { EventStatus, BookingStatus };
+// Booth hooks
+export function useGetAllBooths() {
+  const { actor, isFetching } = useActor();
+  return useQuery<Booth[]>({
+    queryKey: ["booths"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getAllBooths();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useCreateBooth() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (booth: Booth) => actor!.createBooth(booth),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["booths"] });
+      qc.invalidateQueries({ queryKey: ["stats"] });
+    },
+  });
+}
+
+export function useAssignBooth() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, vendorName }: { id: bigint; vendorName: string }) =>
+      actor!.assignBooth(id, vendorName),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["booths"] }),
+  });
+}
+
+// Payment hooks
+export function useGetAllPayments() {
+  const { actor, isFetching } = useActor();
+  return useQuery<Payment[]>({
+    queryKey: ["payments"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getAllPayments();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useCreatePayment() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payment: Payment) => actor!.createPayment(payment),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["payments"] });
+      qc.invalidateQueries({ queryKey: ["stats"] });
+    },
+  });
+}
+
+export function useUpdatePaymentStatus() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: bigint; status: PaymentStatus }) =>
+      actor!.updatePaymentStatus(id, status),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["payments"] }),
+  });
+}
+
+// Document hooks
+export function useGetAllDocuments() {
+  const { actor, isFetching } = useActor();
+  return useQuery<Document[]>({
+    queryKey: ["documents"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getAllDocuments();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useCreateDocument() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (document: Document) => actor!.createDocument(document),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["documents"] }),
+  });
+}
+
+export function useUpdateDocumentStatus() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: bigint; status: DocumentStatus }) =>
+      actor!.updateDocumentStatus(id, status),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["documents"] }),
+  });
+}
+
+// Crowd Session hooks
+export function useGetAllCrowdSessions() {
+  const { actor, isFetching } = useActor();
+  return useQuery<CrowdSession[]>({
+    queryKey: ["crowdSessions"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getAllCrowdSessions();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useAddCrowdSession() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (session: CrowdSession) => actor!.addCrowdSession(session),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["crowdSessions"] });
+      qc.invalidateQueries({ queryKey: ["stats"] });
+    },
+  });
+}
+
+export { EventStatus, BookingStatus, DocumentStatus, PaymentStatus };

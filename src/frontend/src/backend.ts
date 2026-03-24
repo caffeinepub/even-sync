@@ -89,22 +89,48 @@ export class ExternalBlob {
         return this;
     }
 }
+export type DocumentType = {
+    __kind__: "id";
+    id: null;
+} | {
+    __kind__: "other";
+    other: string;
+} | {
+    __kind__: "permit";
+    permit: null;
+} | {
+    __kind__: "license";
+    license: null;
+};
+export type Currency = {
+    __kind__: "btc";
+    btc: null;
+} | {
+    __kind__: "eth";
+    eth: null;
+} | {
+    __kind__: "eur";
+    eur: null;
+} | {
+    __kind__: "gbp";
+    gbp: null;
+} | {
+    __kind__: "icp";
+    icp: null;
+} | {
+    __kind__: "inr";
+    inr: null;
+} | {
+    __kind__: "usd";
+    usd: null;
+} | {
+    __kind__: "other";
+    other: string;
+};
 export interface Venue {
     name: string;
     capacity: bigint;
     location: string;
-}
-export interface Stats {
-    upcomingEvents: bigint;
-    totalEvents: bigint;
-    totalVenues: bigint;
-    totalVendors: bigint;
-}
-export interface Booking {
-    status: BookingStatus;
-    eventId: bigint;
-    resourceId: bigint;
-    isVendor: boolean;
 }
 export interface Event {
     status: EventStatus;
@@ -112,6 +138,49 @@ export interface Event {
     name: string;
     description: string;
     venueName: string;
+}
+export interface Stats {
+    totalBooths: bigint;
+    upcomingEvents: bigint;
+    totalEvents: bigint;
+    totalPayments: bigint;
+    totalVenues: bigint;
+    totalVisitorsToday: bigint;
+    occupiedBooths: bigint;
+    totalVendors: bigint;
+}
+export interface Payment {
+    status: PaymentStatus;
+    dueDate: bigint;
+    currency: Currency;
+    vendorId: bigint;
+    amount: number;
+}
+export interface Document {
+    status: DocumentStatus;
+    fileName: string;
+    vendorId: bigint;
+    docType: DocumentType;
+}
+export interface Booth {
+    status: BoothStatus;
+    assignedVendor?: string;
+    size: BoothSize;
+    zone: string;
+    number: bigint;
+}
+export interface CrowdSession {
+    safetyStatus: SafetyStatus;
+    occupancyPercentage: number;
+    zone: string;
+    visitorCount: bigint;
+    timestamp: bigint;
+}
+export interface Booking {
+    status: BookingStatus;
+    eventId: bigint;
+    resourceId: bigint;
+    isVendor: boolean;
 }
 export interface Vendor {
     name: string;
@@ -124,62 +193,174 @@ export enum BookingStatus {
     pending = "pending",
     confirmed = "confirmed"
 }
+export enum BoothSize {
+    large = "large",
+    small = "small",
+    medium = "medium"
+}
+export enum BoothStatus {
+    occupied = "occupied",
+    reserved = "reserved",
+    available = "available"
+}
+export enum DocumentStatus {
+    verified = "verified",
+    pending = "pending",
+    rejected = "rejected"
+}
 export enum EventStatus {
     upcoming = "upcoming",
     cancelled = "cancelled",
     completed = "completed",
     ongoing = "ongoing"
 }
+export enum PaymentStatus {
+    pending = "pending",
+    paid = "paid",
+    overdue = "overdue"
+}
+export enum SafetyStatus {
+    normal = "normal",
+    caution = "caution",
+    critical = "critical"
+}
 export interface backendInterface {
+    addCrowdSession(session: CrowdSession): Promise<void>;
+    assignBooth(id: bigint, vendorName: string): Promise<void>;
     createBooking(booking: Booking): Promise<bigint>;
+    createBooth(booth: Booth): Promise<bigint>;
+    createDocument(document: Document): Promise<bigint>;
     createEvent(event: Event): Promise<bigint>;
+    createPayment(payment: Payment): Promise<bigint>;
     createVendor(vendor: Vendor): Promise<bigint>;
     createVenue(venue: Venue): Promise<bigint>;
     deleteEvent(id: bigint): Promise<void>;
     deleteVendor(id: bigint): Promise<void>;
     deleteVenue(id: bigint): Promise<void>;
     getAllBookings(): Promise<Array<Booking>>;
+    getAllBooths(): Promise<Array<Booth>>;
+    getAllCrowdSessions(): Promise<Array<CrowdSession>>;
+    getAllDocuments(): Promise<Array<Document>>;
     getAllEvents(): Promise<Array<Event>>;
+    getAllPayments(): Promise<Array<Payment>>;
     getAllVendors(): Promise<Array<Vendor>>;
     getAllVenues(): Promise<Array<Venue>>;
     getBooking(id: bigint): Promise<Booking>;
     getBookingsForEvent(eventId: bigint): Promise<Array<Booking>>;
+    getBooth(id: bigint): Promise<Booth>;
+    getCrowdSessionsByZone(zone: string): Promise<Array<CrowdSession>>;
+    getDocument(id: bigint): Promise<Document>;
     getEvent(id: bigint): Promise<Event>;
+    getPayment(id: bigint): Promise<Payment>;
     getStats(): Promise<Stats>;
+    getUpcomingEvents(): Promise<Array<Event>>;
     getVendor(id: bigint): Promise<Vendor>;
     getVenue(id: bigint): Promise<Venue>;
+    updateBooth(id: bigint, booth: Booth): Promise<void>;
+    updateDocumentStatus(id: bigint, status: DocumentStatus): Promise<void>;
     updateEvent(id: bigint, event: Event): Promise<void>;
+    updatePaymentStatus(id: bigint, status: PaymentStatus): Promise<void>;
     updateVendor(id: bigint, vendor: Vendor): Promise<void>;
     updateVenue(id: bigint, venue: Venue): Promise<void>;
 }
-import type { Booking as _Booking, BookingStatus as _BookingStatus, Event as _Event, EventStatus as _EventStatus } from "./declarations/backend.did.d.ts";
+import type { Booking as _Booking, BookingStatus as _BookingStatus, Booth as _Booth, BoothSize as _BoothSize, BoothStatus as _BoothStatus, CrowdSession as _CrowdSession, Currency as _Currency, Document as _Document, DocumentStatus as _DocumentStatus, DocumentType as _DocumentType, Event as _Event, EventStatus as _EventStatus, Payment as _Payment, PaymentStatus as _PaymentStatus, SafetyStatus as _SafetyStatus } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
-    async createBooking(arg0: Booking): Promise<bigint> {
+    async addCrowdSession(arg0: CrowdSession): Promise<void> {
         if (this.processError) {
             try {
-                const result = await this.actor.createBooking(to_candid_Booking_n1(this._uploadFile, this._downloadFile, arg0));
+                const result = await this.actor.addCrowdSession(to_candid_CrowdSession_n1(this._uploadFile, this._downloadFile, arg0));
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.createBooking(to_candid_Booking_n1(this._uploadFile, this._downloadFile, arg0));
+            const result = await this.actor.addCrowdSession(to_candid_CrowdSession_n1(this._uploadFile, this._downloadFile, arg0));
+            return result;
+        }
+    }
+    async assignBooth(arg0: bigint, arg1: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.assignBooth(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.assignBooth(arg0, arg1);
+            return result;
+        }
+    }
+    async createBooking(arg0: Booking): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.createBooking(to_candid_Booking_n5(this._uploadFile, this._downloadFile, arg0));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.createBooking(to_candid_Booking_n5(this._uploadFile, this._downloadFile, arg0));
+            return result;
+        }
+    }
+    async createBooth(arg0: Booth): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.createBooth(to_candid_Booth_n9(this._uploadFile, this._downloadFile, arg0));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.createBooth(to_candid_Booth_n9(this._uploadFile, this._downloadFile, arg0));
+            return result;
+        }
+    }
+    async createDocument(arg0: Document): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.createDocument(to_candid_Document_n15(this._uploadFile, this._downloadFile, arg0));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.createDocument(to_candid_Document_n15(this._uploadFile, this._downloadFile, arg0));
             return result;
         }
     }
     async createEvent(arg0: Event): Promise<bigint> {
         if (this.processError) {
             try {
-                const result = await this.actor.createEvent(to_candid_Event_n5(this._uploadFile, this._downloadFile, arg0));
+                const result = await this.actor.createEvent(to_candid_Event_n21(this._uploadFile, this._downloadFile, arg0));
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.createEvent(to_candid_Event_n5(this._uploadFile, this._downloadFile, arg0));
+            const result = await this.actor.createEvent(to_candid_Event_n21(this._uploadFile, this._downloadFile, arg0));
+            return result;
+        }
+    }
+    async createPayment(arg0: Payment): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.createPayment(to_candid_Payment_n25(this._uploadFile, this._downloadFile, arg0));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.createPayment(to_candid_Payment_n25(this._uploadFile, this._downloadFile, arg0));
             return result;
         }
     }
@@ -257,28 +438,84 @@ export class Backend implements backendInterface {
         if (this.processError) {
             try {
                 const result = await this.actor.getAllBookings();
-                return from_candid_vec_n9(this._uploadFile, this._downloadFile, result);
+                return from_candid_vec_n31(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getAllBookings();
-            return from_candid_vec_n9(this._uploadFile, this._downloadFile, result);
+            return from_candid_vec_n31(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getAllBooths(): Promise<Array<Booth>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllBooths();
+                return from_candid_vec_n36(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllBooths();
+            return from_candid_vec_n36(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getAllCrowdSessions(): Promise<Array<CrowdSession>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllCrowdSessions();
+                return from_candid_vec_n44(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllCrowdSessions();
+            return from_candid_vec_n44(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getAllDocuments(): Promise<Array<Document>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllDocuments();
+                return from_candid_vec_n49(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllDocuments();
+            return from_candid_vec_n49(this._uploadFile, this._downloadFile, result);
         }
     }
     async getAllEvents(): Promise<Array<Event>> {
         if (this.processError) {
             try {
                 const result = await this.actor.getAllEvents();
-                return from_candid_vec_n14(this._uploadFile, this._downloadFile, result);
+                return from_candid_vec_n56(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getAllEvents();
-            return from_candid_vec_n14(this._uploadFile, this._downloadFile, result);
+            return from_candid_vec_n56(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getAllPayments(): Promise<Array<Payment>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllPayments();
+                return from_candid_vec_n61(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllPayments();
+            return from_candid_vec_n61(this._uploadFile, this._downloadFile, result);
         }
     }
     async getAllVendors(): Promise<Array<Vendor>> {
@@ -313,42 +550,98 @@ export class Backend implements backendInterface {
         if (this.processError) {
             try {
                 const result = await this.actor.getBooking(arg0);
-                return from_candid_Booking_n10(this._uploadFile, this._downloadFile, result);
+                return from_candid_Booking_n32(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getBooking(arg0);
-            return from_candid_Booking_n10(this._uploadFile, this._downloadFile, result);
+            return from_candid_Booking_n32(this._uploadFile, this._downloadFile, result);
         }
     }
     async getBookingsForEvent(arg0: bigint): Promise<Array<Booking>> {
         if (this.processError) {
             try {
                 const result = await this.actor.getBookingsForEvent(arg0);
-                return from_candid_vec_n9(this._uploadFile, this._downloadFile, result);
+                return from_candid_vec_n31(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getBookingsForEvent(arg0);
-            return from_candid_vec_n9(this._uploadFile, this._downloadFile, result);
+            return from_candid_vec_n31(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getBooth(arg0: bigint): Promise<Booth> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getBooth(arg0);
+                return from_candid_Booth_n37(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getBooth(arg0);
+            return from_candid_Booth_n37(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getCrowdSessionsByZone(arg0: string): Promise<Array<CrowdSession>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getCrowdSessionsByZone(arg0);
+                return from_candid_vec_n44(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getCrowdSessionsByZone(arg0);
+            return from_candid_vec_n44(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getDocument(arg0: bigint): Promise<Document> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getDocument(arg0);
+                return from_candid_Document_n50(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getDocument(arg0);
+            return from_candid_Document_n50(this._uploadFile, this._downloadFile, result);
         }
     }
     async getEvent(arg0: bigint): Promise<Event> {
         if (this.processError) {
             try {
                 const result = await this.actor.getEvent(arg0);
-                return from_candid_Event_n15(this._uploadFile, this._downloadFile, result);
+                return from_candid_Event_n57(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getEvent(arg0);
-            return from_candid_Event_n15(this._uploadFile, this._downloadFile, result);
+            return from_candid_Event_n57(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getPayment(arg0: bigint): Promise<Payment> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getPayment(arg0);
+                return from_candid_Payment_n62(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getPayment(arg0);
+            return from_candid_Payment_n62(this._uploadFile, this._downloadFile, result);
         }
     }
     async getStats(): Promise<Stats> {
@@ -363,6 +656,20 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.getStats();
             return result;
+        }
+    }
+    async getUpcomingEvents(): Promise<Array<Event>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getUpcomingEvents();
+                return from_candid_vec_n56(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getUpcomingEvents();
+            return from_candid_vec_n56(this._uploadFile, this._downloadFile, result);
         }
     }
     async getVendor(arg0: bigint): Promise<Vendor> {
@@ -393,17 +700,59 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async updateEvent(arg0: bigint, arg1: Event): Promise<void> {
+    async updateBooth(arg0: bigint, arg1: Booth): Promise<void> {
         if (this.processError) {
             try {
-                const result = await this.actor.updateEvent(arg0, to_candid_Event_n5(this._uploadFile, this._downloadFile, arg1));
+                const result = await this.actor.updateBooth(arg0, to_candid_Booth_n9(this._uploadFile, this._downloadFile, arg1));
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.updateEvent(arg0, to_candid_Event_n5(this._uploadFile, this._downloadFile, arg1));
+            const result = await this.actor.updateBooth(arg0, to_candid_Booth_n9(this._uploadFile, this._downloadFile, arg1));
+            return result;
+        }
+    }
+    async updateDocumentStatus(arg0: bigint, arg1: DocumentStatus): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateDocumentStatus(arg0, to_candid_DocumentStatus_n17(this._uploadFile, this._downloadFile, arg1));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateDocumentStatus(arg0, to_candid_DocumentStatus_n17(this._uploadFile, this._downloadFile, arg1));
+            return result;
+        }
+    }
+    async updateEvent(arg0: bigint, arg1: Event): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateEvent(arg0, to_candid_Event_n21(this._uploadFile, this._downloadFile, arg1));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateEvent(arg0, to_candid_Event_n21(this._uploadFile, this._downloadFile, arg1));
+            return result;
+        }
+    }
+    async updatePaymentStatus(arg0: bigint, arg1: PaymentStatus): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updatePaymentStatus(arg0, to_candid_PaymentStatus_n27(this._uploadFile, this._downloadFile, arg1));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updatePaymentStatus(arg0, to_candid_PaymentStatus_n27(this._uploadFile, this._downloadFile, arg1));
             return result;
         }
     }
@@ -436,19 +785,55 @@ export class Backend implements backendInterface {
         }
     }
 }
-function from_candid_BookingStatus_n12(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _BookingStatus): BookingStatus {
-    return from_candid_variant_n13(_uploadFile, _downloadFile, value);
+function from_candid_BookingStatus_n34(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _BookingStatus): BookingStatus {
+    return from_candid_variant_n35(_uploadFile, _downloadFile, value);
 }
-function from_candid_Booking_n10(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Booking): Booking {
-    return from_candid_record_n11(_uploadFile, _downloadFile, value);
+function from_candid_Booking_n32(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Booking): Booking {
+    return from_candid_record_n33(_uploadFile, _downloadFile, value);
 }
-function from_candid_EventStatus_n17(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _EventStatus): EventStatus {
-    return from_candid_variant_n18(_uploadFile, _downloadFile, value);
+function from_candid_BoothSize_n42(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _BoothSize): BoothSize {
+    return from_candid_variant_n43(_uploadFile, _downloadFile, value);
 }
-function from_candid_Event_n15(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Event): Event {
-    return from_candid_record_n16(_uploadFile, _downloadFile, value);
+function from_candid_BoothStatus_n39(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _BoothStatus): BoothStatus {
+    return from_candid_variant_n40(_uploadFile, _downloadFile, value);
 }
-function from_candid_record_n11(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_Booth_n37(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Booth): Booth {
+    return from_candid_record_n38(_uploadFile, _downloadFile, value);
+}
+function from_candid_CrowdSession_n45(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _CrowdSession): CrowdSession {
+    return from_candid_record_n46(_uploadFile, _downloadFile, value);
+}
+function from_candid_Currency_n66(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Currency): Currency {
+    return from_candid_variant_n67(_uploadFile, _downloadFile, value);
+}
+function from_candid_DocumentStatus_n52(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _DocumentStatus): DocumentStatus {
+    return from_candid_variant_n53(_uploadFile, _downloadFile, value);
+}
+function from_candid_DocumentType_n54(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _DocumentType): DocumentType {
+    return from_candid_variant_n55(_uploadFile, _downloadFile, value);
+}
+function from_candid_Document_n50(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Document): Document {
+    return from_candid_record_n51(_uploadFile, _downloadFile, value);
+}
+function from_candid_EventStatus_n59(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _EventStatus): EventStatus {
+    return from_candid_variant_n60(_uploadFile, _downloadFile, value);
+}
+function from_candid_Event_n57(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Event): Event {
+    return from_candid_record_n58(_uploadFile, _downloadFile, value);
+}
+function from_candid_PaymentStatus_n64(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _PaymentStatus): PaymentStatus {
+    return from_candid_variant_n65(_uploadFile, _downloadFile, value);
+}
+function from_candid_Payment_n62(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Payment): Payment {
+    return from_candid_record_n63(_uploadFile, _downloadFile, value);
+}
+function from_candid_SafetyStatus_n47(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _SafetyStatus): SafetyStatus {
+    return from_candid_variant_n48(_uploadFile, _downloadFile, value);
+}
+function from_candid_opt_n41(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [string]): string | null {
+    return value.length === 0 ? null : value[0];
+}
+function from_candid_record_n33(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     status: _BookingStatus;
     eventId: bigint;
     resourceId: bigint;
@@ -460,13 +845,73 @@ function from_candid_record_n11(_uploadFile: (file: ExternalBlob) => Promise<Uin
     isVendor: boolean;
 } {
     return {
-        status: from_candid_BookingStatus_n12(_uploadFile, _downloadFile, value.status),
+        status: from_candid_BookingStatus_n34(_uploadFile, _downloadFile, value.status),
         eventId: value.eventId,
         resourceId: value.resourceId,
         isVendor: value.isVendor
     };
 }
-function from_candid_record_n16(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_record_n38(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    status: _BoothStatus;
+    assignedVendor: [] | [string];
+    size: _BoothSize;
+    zone: string;
+    number: bigint;
+}): {
+    status: BoothStatus;
+    assignedVendor?: string;
+    size: BoothSize;
+    zone: string;
+    number: bigint;
+} {
+    return {
+        status: from_candid_BoothStatus_n39(_uploadFile, _downloadFile, value.status),
+        assignedVendor: record_opt_to_undefined(from_candid_opt_n41(_uploadFile, _downloadFile, value.assignedVendor)),
+        size: from_candid_BoothSize_n42(_uploadFile, _downloadFile, value.size),
+        zone: value.zone,
+        number: value.number
+    };
+}
+function from_candid_record_n46(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    safetyStatus: _SafetyStatus;
+    occupancyPercentage: number;
+    zone: string;
+    visitorCount: bigint;
+    timestamp: bigint;
+}): {
+    safetyStatus: SafetyStatus;
+    occupancyPercentage: number;
+    zone: string;
+    visitorCount: bigint;
+    timestamp: bigint;
+} {
+    return {
+        safetyStatus: from_candid_SafetyStatus_n47(_uploadFile, _downloadFile, value.safetyStatus),
+        occupancyPercentage: value.occupancyPercentage,
+        zone: value.zone,
+        visitorCount: value.visitorCount,
+        timestamp: value.timestamp
+    };
+}
+function from_candid_record_n51(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    status: _DocumentStatus;
+    fileName: string;
+    vendorId: bigint;
+    docType: _DocumentType;
+}): {
+    status: DocumentStatus;
+    fileName: string;
+    vendorId: bigint;
+    docType: DocumentType;
+} {
+    return {
+        status: from_candid_DocumentStatus_n52(_uploadFile, _downloadFile, value.status),
+        fileName: value.fileName,
+        vendorId: value.vendorId,
+        docType: from_candid_DocumentType_n54(_uploadFile, _downloadFile, value.docType)
+    };
+}
+function from_candid_record_n58(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     status: _EventStatus;
     date: bigint;
     name: string;
@@ -480,14 +925,35 @@ function from_candid_record_n16(_uploadFile: (file: ExternalBlob) => Promise<Uin
     venueName: string;
 } {
     return {
-        status: from_candid_EventStatus_n17(_uploadFile, _downloadFile, value.status),
+        status: from_candid_EventStatus_n59(_uploadFile, _downloadFile, value.status),
         date: value.date,
         name: value.name,
         description: value.description,
         venueName: value.venueName
     };
 }
-function from_candid_variant_n13(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_record_n63(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    status: _PaymentStatus;
+    dueDate: bigint;
+    currency: _Currency;
+    vendorId: bigint;
+    amount: number;
+}): {
+    status: PaymentStatus;
+    dueDate: bigint;
+    currency: Currency;
+    vendorId: bigint;
+    amount: number;
+} {
+    return {
+        status: from_candid_PaymentStatus_n64(_uploadFile, _downloadFile, value.status),
+        dueDate: value.dueDate,
+        currency: from_candid_Currency_n66(_uploadFile, _downloadFile, value.currency),
+        vendorId: value.vendorId,
+        amount: value.amount
+    };
+}
+function from_candid_variant_n35(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     cancelled: null;
 } | {
     pending: null;
@@ -496,7 +962,78 @@ function from_candid_variant_n13(_uploadFile: (file: ExternalBlob) => Promise<Ui
 }): BookingStatus {
     return "cancelled" in value ? BookingStatus.cancelled : "pending" in value ? BookingStatus.pending : "confirmed" in value ? BookingStatus.confirmed : value;
 }
-function from_candid_variant_n18(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_variant_n40(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    occupied: null;
+} | {
+    reserved: null;
+} | {
+    available: null;
+}): BoothStatus {
+    return "occupied" in value ? BoothStatus.occupied : "reserved" in value ? BoothStatus.reserved : "available" in value ? BoothStatus.available : value;
+}
+function from_candid_variant_n43(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    large: null;
+} | {
+    small: null;
+} | {
+    medium: null;
+}): BoothSize {
+    return "large" in value ? BoothSize.large : "small" in value ? BoothSize.small : "medium" in value ? BoothSize.medium : value;
+}
+function from_candid_variant_n48(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    normal: null;
+} | {
+    caution: null;
+} | {
+    critical: null;
+}): SafetyStatus {
+    return "normal" in value ? SafetyStatus.normal : "caution" in value ? SafetyStatus.caution : "critical" in value ? SafetyStatus.critical : value;
+}
+function from_candid_variant_n53(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    verified: null;
+} | {
+    pending: null;
+} | {
+    rejected: null;
+}): DocumentStatus {
+    return "verified" in value ? DocumentStatus.verified : "pending" in value ? DocumentStatus.pending : "rejected" in value ? DocumentStatus.rejected : value;
+}
+function from_candid_variant_n55(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    id: null;
+} | {
+    other: string;
+} | {
+    permit: null;
+} | {
+    license: null;
+}): {
+    __kind__: "id";
+    id: null;
+} | {
+    __kind__: "other";
+    other: string;
+} | {
+    __kind__: "permit";
+    permit: null;
+} | {
+    __kind__: "license";
+    license: null;
+} {
+    return "id" in value ? {
+        __kind__: "id",
+        id: value.id
+    } : "other" in value ? {
+        __kind__: "other",
+        other: value.other
+    } : "permit" in value ? {
+        __kind__: "permit",
+        permit: value.permit
+    } : "license" in value ? {
+        __kind__: "license",
+        license: value.license
+    } : value;
+}
+function from_candid_variant_n60(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     upcoming: null;
 } | {
     cancelled: null;
@@ -507,43 +1044,206 @@ function from_candid_variant_n18(_uploadFile: (file: ExternalBlob) => Promise<Ui
 }): EventStatus {
     return "upcoming" in value ? EventStatus.upcoming : "cancelled" in value ? EventStatus.cancelled : "completed" in value ? EventStatus.completed : "ongoing" in value ? EventStatus.ongoing : value;
 }
-function from_candid_vec_n14(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_Event>): Array<Event> {
-    return value.map((x)=>from_candid_Event_n15(_uploadFile, _downloadFile, x));
+function from_candid_variant_n65(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    pending: null;
+} | {
+    paid: null;
+} | {
+    overdue: null;
+}): PaymentStatus {
+    return "pending" in value ? PaymentStatus.pending : "paid" in value ? PaymentStatus.paid : "overdue" in value ? PaymentStatus.overdue : value;
 }
-function from_candid_vec_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_Booking>): Array<Booking> {
-    return value.map((x)=>from_candid_Booking_n10(_uploadFile, _downloadFile, x));
+function from_candid_variant_n67(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    btc: null;
+} | {
+    eth: null;
+} | {
+    eur: null;
+} | {
+    gbp: null;
+} | {
+    icp: null;
+} | {
+    inr: null;
+} | {
+    usd: null;
+} | {
+    other: string;
+}): {
+    __kind__: "btc";
+    btc: null;
+} | {
+    __kind__: "eth";
+    eth: null;
+} | {
+    __kind__: "eur";
+    eur: null;
+} | {
+    __kind__: "gbp";
+    gbp: null;
+} | {
+    __kind__: "icp";
+    icp: null;
+} | {
+    __kind__: "inr";
+    inr: null;
+} | {
+    __kind__: "usd";
+    usd: null;
+} | {
+    __kind__: "other";
+    other: string;
+} {
+    return "btc" in value ? {
+        __kind__: "btc",
+        btc: value.btc
+    } : "eth" in value ? {
+        __kind__: "eth",
+        eth: value.eth
+    } : "eur" in value ? {
+        __kind__: "eur",
+        eur: value.eur
+    } : "gbp" in value ? {
+        __kind__: "gbp",
+        gbp: value.gbp
+    } : "icp" in value ? {
+        __kind__: "icp",
+        icp: value.icp
+    } : "inr" in value ? {
+        __kind__: "inr",
+        inr: value.inr
+    } : "usd" in value ? {
+        __kind__: "usd",
+        usd: value.usd
+    } : "other" in value ? {
+        __kind__: "other",
+        other: value.other
+    } : value;
 }
-function to_candid_BookingStatus_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: BookingStatus): _BookingStatus {
-    return to_candid_variant_n4(_uploadFile, _downloadFile, value);
+function from_candid_vec_n31(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_Booking>): Array<Booking> {
+    return value.map((x)=>from_candid_Booking_n32(_uploadFile, _downloadFile, x));
 }
-function to_candid_Booking_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Booking): _Booking {
-    return to_candid_record_n2(_uploadFile, _downloadFile, value);
+function from_candid_vec_n36(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_Booth>): Array<Booth> {
+    return value.map((x)=>from_candid_Booth_n37(_uploadFile, _downloadFile, x));
 }
-function to_candid_EventStatus_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: EventStatus): _EventStatus {
+function from_candid_vec_n44(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_CrowdSession>): Array<CrowdSession> {
+    return value.map((x)=>from_candid_CrowdSession_n45(_uploadFile, _downloadFile, x));
+}
+function from_candid_vec_n49(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_Document>): Array<Document> {
+    return value.map((x)=>from_candid_Document_n50(_uploadFile, _downloadFile, x));
+}
+function from_candid_vec_n56(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_Event>): Array<Event> {
+    return value.map((x)=>from_candid_Event_n57(_uploadFile, _downloadFile, x));
+}
+function from_candid_vec_n61(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_Payment>): Array<Payment> {
+    return value.map((x)=>from_candid_Payment_n62(_uploadFile, _downloadFile, x));
+}
+function to_candid_BookingStatus_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: BookingStatus): _BookingStatus {
     return to_candid_variant_n8(_uploadFile, _downloadFile, value);
 }
-function to_candid_Event_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Event): _Event {
+function to_candid_Booking_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Booking): _Booking {
     return to_candid_record_n6(_uploadFile, _downloadFile, value);
 }
-function to_candid_record_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
-    status: BookingStatus;
-    eventId: bigint;
-    resourceId: bigint;
-    isVendor: boolean;
+function to_candid_BoothSize_n13(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: BoothSize): _BoothSize {
+    return to_candid_variant_n14(_uploadFile, _downloadFile, value);
+}
+function to_candid_BoothStatus_n11(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: BoothStatus): _BoothStatus {
+    return to_candid_variant_n12(_uploadFile, _downloadFile, value);
+}
+function to_candid_Booth_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Booth): _Booth {
+    return to_candid_record_n10(_uploadFile, _downloadFile, value);
+}
+function to_candid_CrowdSession_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: CrowdSession): _CrowdSession {
+    return to_candid_record_n2(_uploadFile, _downloadFile, value);
+}
+function to_candid_Currency_n29(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Currency): _Currency {
+    return to_candid_variant_n30(_uploadFile, _downloadFile, value);
+}
+function to_candid_DocumentStatus_n17(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: DocumentStatus): _DocumentStatus {
+    return to_candid_variant_n18(_uploadFile, _downloadFile, value);
+}
+function to_candid_DocumentType_n19(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: DocumentType): _DocumentType {
+    return to_candid_variant_n20(_uploadFile, _downloadFile, value);
+}
+function to_candid_Document_n15(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Document): _Document {
+    return to_candid_record_n16(_uploadFile, _downloadFile, value);
+}
+function to_candid_EventStatus_n23(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: EventStatus): _EventStatus {
+    return to_candid_variant_n24(_uploadFile, _downloadFile, value);
+}
+function to_candid_Event_n21(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Event): _Event {
+    return to_candid_record_n22(_uploadFile, _downloadFile, value);
+}
+function to_candid_PaymentStatus_n27(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: PaymentStatus): _PaymentStatus {
+    return to_candid_variant_n28(_uploadFile, _downloadFile, value);
+}
+function to_candid_Payment_n25(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Payment): _Payment {
+    return to_candid_record_n26(_uploadFile, _downloadFile, value);
+}
+function to_candid_SafetyStatus_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: SafetyStatus): _SafetyStatus {
+    return to_candid_variant_n4(_uploadFile, _downloadFile, value);
+}
+function to_candid_record_n10(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    status: BoothStatus;
+    assignedVendor?: string;
+    size: BoothSize;
+    zone: string;
+    number: bigint;
 }): {
-    status: _BookingStatus;
-    eventId: bigint;
-    resourceId: bigint;
-    isVendor: boolean;
+    status: _BoothStatus;
+    assignedVendor: [] | [string];
+    size: _BoothSize;
+    zone: string;
+    number: bigint;
 } {
     return {
-        status: to_candid_BookingStatus_n3(_uploadFile, _downloadFile, value.status),
-        eventId: value.eventId,
-        resourceId: value.resourceId,
-        isVendor: value.isVendor
+        status: to_candid_BoothStatus_n11(_uploadFile, _downloadFile, value.status),
+        assignedVendor: value.assignedVendor ? candid_some(value.assignedVendor) : candid_none(),
+        size: to_candid_BoothSize_n13(_uploadFile, _downloadFile, value.size),
+        zone: value.zone,
+        number: value.number
     };
 }
-function to_candid_record_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function to_candid_record_n16(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    status: DocumentStatus;
+    fileName: string;
+    vendorId: bigint;
+    docType: DocumentType;
+}): {
+    status: _DocumentStatus;
+    fileName: string;
+    vendorId: bigint;
+    docType: _DocumentType;
+} {
+    return {
+        status: to_candid_DocumentStatus_n17(_uploadFile, _downloadFile, value.status),
+        fileName: value.fileName,
+        vendorId: value.vendorId,
+        docType: to_candid_DocumentType_n19(_uploadFile, _downloadFile, value.docType)
+    };
+}
+function to_candid_record_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    safetyStatus: SafetyStatus;
+    occupancyPercentage: number;
+    zone: string;
+    visitorCount: bigint;
+    timestamp: bigint;
+}): {
+    safetyStatus: _SafetyStatus;
+    occupancyPercentage: number;
+    zone: string;
+    visitorCount: bigint;
+    timestamp: bigint;
+} {
+    return {
+        safetyStatus: to_candid_SafetyStatus_n3(_uploadFile, _downloadFile, value.safetyStatus),
+        occupancyPercentage: value.occupancyPercentage,
+        zone: value.zone,
+        visitorCount: value.visitorCount,
+        timestamp: value.timestamp
+    };
+}
+function to_candid_record_n22(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     status: EventStatus;
     date: bigint;
     name: string;
@@ -557,29 +1257,129 @@ function to_candid_record_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8A
     venueName: string;
 } {
     return {
-        status: to_candid_EventStatus_n7(_uploadFile, _downloadFile, value.status),
+        status: to_candid_EventStatus_n23(_uploadFile, _downloadFile, value.status),
         date: value.date,
         name: value.name,
         description: value.description,
         venueName: value.venueName
     };
 }
-function to_candid_variant_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: BookingStatus): {
-    cancelled: null;
+function to_candid_record_n26(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    status: PaymentStatus;
+    dueDate: bigint;
+    currency: Currency;
+    vendorId: bigint;
+    amount: number;
+}): {
+    status: _PaymentStatus;
+    dueDate: bigint;
+    currency: _Currency;
+    vendorId: bigint;
+    amount: number;
+} {
+    return {
+        status: to_candid_PaymentStatus_n27(_uploadFile, _downloadFile, value.status),
+        dueDate: value.dueDate,
+        currency: to_candid_Currency_n29(_uploadFile, _downloadFile, value.currency),
+        vendorId: value.vendorId,
+        amount: value.amount
+    };
+}
+function to_candid_record_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    status: BookingStatus;
+    eventId: bigint;
+    resourceId: bigint;
+    isVendor: boolean;
+}): {
+    status: _BookingStatus;
+    eventId: bigint;
+    resourceId: bigint;
+    isVendor: boolean;
+} {
+    return {
+        status: to_candid_BookingStatus_n7(_uploadFile, _downloadFile, value.status),
+        eventId: value.eventId,
+        resourceId: value.resourceId,
+        isVendor: value.isVendor
+    };
+}
+function to_candid_variant_n12(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: BoothStatus): {
+    occupied: null;
+} | {
+    reserved: null;
+} | {
+    available: null;
+} {
+    return value == BoothStatus.occupied ? {
+        occupied: null
+    } : value == BoothStatus.reserved ? {
+        reserved: null
+    } : value == BoothStatus.available ? {
+        available: null
+    } : value;
+}
+function to_candid_variant_n14(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: BoothSize): {
+    large: null;
+} | {
+    small: null;
+} | {
+    medium: null;
+} {
+    return value == BoothSize.large ? {
+        large: null
+    } : value == BoothSize.small ? {
+        small: null
+    } : value == BoothSize.medium ? {
+        medium: null
+    } : value;
+}
+function to_candid_variant_n18(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: DocumentStatus): {
+    verified: null;
 } | {
     pending: null;
 } | {
-    confirmed: null;
+    rejected: null;
 } {
-    return value == BookingStatus.cancelled ? {
-        cancelled: null
-    } : value == BookingStatus.pending ? {
+    return value == DocumentStatus.verified ? {
+        verified: null
+    } : value == DocumentStatus.pending ? {
         pending: null
-    } : value == BookingStatus.confirmed ? {
-        confirmed: null
+    } : value == DocumentStatus.rejected ? {
+        rejected: null
     } : value;
 }
-function to_candid_variant_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: EventStatus): {
+function to_candid_variant_n20(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    __kind__: "id";
+    id: null;
+} | {
+    __kind__: "other";
+    other: string;
+} | {
+    __kind__: "permit";
+    permit: null;
+} | {
+    __kind__: "license";
+    license: null;
+}): {
+    id: null;
+} | {
+    other: string;
+} | {
+    permit: null;
+} | {
+    license: null;
+} {
+    return value.__kind__ === "id" ? {
+        id: value.id
+    } : value.__kind__ === "other" ? {
+        other: value.other
+    } : value.__kind__ === "permit" ? {
+        permit: value.permit
+    } : value.__kind__ === "license" ? {
+        license: value.license
+    } : value;
+}
+function to_candid_variant_n24(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: EventStatus): {
     upcoming: null;
 } | {
     cancelled: null;
@@ -596,6 +1396,110 @@ function to_candid_variant_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8
         completed: null
     } : value == EventStatus.ongoing ? {
         ongoing: null
+    } : value;
+}
+function to_candid_variant_n28(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: PaymentStatus): {
+    pending: null;
+} | {
+    paid: null;
+} | {
+    overdue: null;
+} {
+    return value == PaymentStatus.pending ? {
+        pending: null
+    } : value == PaymentStatus.paid ? {
+        paid: null
+    } : value == PaymentStatus.overdue ? {
+        overdue: null
+    } : value;
+}
+function to_candid_variant_n30(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    __kind__: "btc";
+    btc: null;
+} | {
+    __kind__: "eth";
+    eth: null;
+} | {
+    __kind__: "eur";
+    eur: null;
+} | {
+    __kind__: "gbp";
+    gbp: null;
+} | {
+    __kind__: "icp";
+    icp: null;
+} | {
+    __kind__: "inr";
+    inr: null;
+} | {
+    __kind__: "usd";
+    usd: null;
+} | {
+    __kind__: "other";
+    other: string;
+}): {
+    btc: null;
+} | {
+    eth: null;
+} | {
+    eur: null;
+} | {
+    gbp: null;
+} | {
+    icp: null;
+} | {
+    inr: null;
+} | {
+    usd: null;
+} | {
+    other: string;
+} {
+    return value.__kind__ === "btc" ? {
+        btc: value.btc
+    } : value.__kind__ === "eth" ? {
+        eth: value.eth
+    } : value.__kind__ === "eur" ? {
+        eur: value.eur
+    } : value.__kind__ === "gbp" ? {
+        gbp: value.gbp
+    } : value.__kind__ === "icp" ? {
+        icp: value.icp
+    } : value.__kind__ === "inr" ? {
+        inr: value.inr
+    } : value.__kind__ === "usd" ? {
+        usd: value.usd
+    } : value.__kind__ === "other" ? {
+        other: value.other
+    } : value;
+}
+function to_candid_variant_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: SafetyStatus): {
+    normal: null;
+} | {
+    caution: null;
+} | {
+    critical: null;
+} {
+    return value == SafetyStatus.normal ? {
+        normal: null
+    } : value == SafetyStatus.caution ? {
+        caution: null
+    } : value == SafetyStatus.critical ? {
+        critical: null
+    } : value;
+}
+function to_candid_variant_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: BookingStatus): {
+    cancelled: null;
+} | {
+    pending: null;
+} | {
+    confirmed: null;
+} {
+    return value == BookingStatus.cancelled ? {
+        cancelled: null
+    } : value == BookingStatus.pending ? {
+        pending: null
+    } : value == BookingStatus.confirmed ? {
+        confirmed: null
     } : value;
 }
 export interface CreateActorOptions {

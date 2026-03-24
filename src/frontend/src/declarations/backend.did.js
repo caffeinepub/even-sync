@@ -8,6 +8,18 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
+export const SafetyStatus = IDL.Variant({
+  'normal' : IDL.Null,
+  'caution' : IDL.Null,
+  'critical' : IDL.Null,
+});
+export const CrowdSession = IDL.Record({
+  'safetyStatus' : SafetyStatus,
+  'occupancyPercentage' : IDL.Float64,
+  'zone' : IDL.Text,
+  'visitorCount' : IDL.Nat,
+  'timestamp' : IDL.Int,
+});
 export const BookingStatus = IDL.Variant({
   'cancelled' : IDL.Null,
   'pending' : IDL.Null,
@@ -18,6 +30,40 @@ export const Booking = IDL.Record({
   'eventId' : IDL.Nat,
   'resourceId' : IDL.Nat,
   'isVendor' : IDL.Bool,
+});
+export const BoothStatus = IDL.Variant({
+  'occupied' : IDL.Null,
+  'reserved' : IDL.Null,
+  'available' : IDL.Null,
+});
+export const BoothSize = IDL.Variant({
+  'large' : IDL.Null,
+  'small' : IDL.Null,
+  'medium' : IDL.Null,
+});
+export const Booth = IDL.Record({
+  'status' : BoothStatus,
+  'assignedVendor' : IDL.Opt(IDL.Text),
+  'size' : BoothSize,
+  'zone' : IDL.Text,
+  'number' : IDL.Nat,
+});
+export const DocumentStatus = IDL.Variant({
+  'verified' : IDL.Null,
+  'pending' : IDL.Null,
+  'rejected' : IDL.Null,
+});
+export const DocumentType = IDL.Variant({
+  'id' : IDL.Null,
+  'other' : IDL.Text,
+  'permit' : IDL.Null,
+  'license' : IDL.Null,
+});
+export const Document = IDL.Record({
+  'status' : DocumentStatus,
+  'fileName' : IDL.Text,
+  'vendorId' : IDL.Nat,
+  'docType' : DocumentType,
 });
 export const EventStatus = IDL.Variant({
   'upcoming' : IDL.Null,
@@ -32,6 +78,28 @@ export const Event = IDL.Record({
   'description' : IDL.Text,
   'venueName' : IDL.Text,
 });
+export const PaymentStatus = IDL.Variant({
+  'pending' : IDL.Null,
+  'paid' : IDL.Null,
+  'overdue' : IDL.Null,
+});
+export const Currency = IDL.Variant({
+  'btc' : IDL.Null,
+  'eth' : IDL.Null,
+  'eur' : IDL.Null,
+  'gbp' : IDL.Null,
+  'icp' : IDL.Null,
+  'inr' : IDL.Null,
+  'usd' : IDL.Null,
+  'other' : IDL.Text,
+});
+export const Payment = IDL.Record({
+  'status' : PaymentStatus,
+  'dueDate' : IDL.Int,
+  'currency' : Currency,
+  'vendorId' : IDL.Nat,
+  'amount' : IDL.Float64,
+});
 export const Vendor = IDL.Record({
   'name' : IDL.Text,
   'contactEmail' : IDL.Text,
@@ -44,31 +112,56 @@ export const Venue = IDL.Record({
   'location' : IDL.Text,
 });
 export const Stats = IDL.Record({
+  'totalBooths' : IDL.Nat,
   'upcomingEvents' : IDL.Nat,
   'totalEvents' : IDL.Nat,
+  'totalPayments' : IDL.Nat,
   'totalVenues' : IDL.Nat,
+  'totalVisitorsToday' : IDL.Nat,
+  'occupiedBooths' : IDL.Nat,
   'totalVendors' : IDL.Nat,
 });
 
 export const idlService = IDL.Service({
+  'addCrowdSession' : IDL.Func([CrowdSession], [], []),
+  'assignBooth' : IDL.Func([IDL.Nat, IDL.Text], [], []),
   'createBooking' : IDL.Func([Booking], [IDL.Nat], []),
+  'createBooth' : IDL.Func([Booth], [IDL.Nat], []),
+  'createDocument' : IDL.Func([Document], [IDL.Nat], []),
   'createEvent' : IDL.Func([Event], [IDL.Nat], []),
+  'createPayment' : IDL.Func([Payment], [IDL.Nat], []),
   'createVendor' : IDL.Func([Vendor], [IDL.Nat], []),
   'createVenue' : IDL.Func([Venue], [IDL.Nat], []),
   'deleteEvent' : IDL.Func([IDL.Nat], [], []),
   'deleteVendor' : IDL.Func([IDL.Nat], [], []),
   'deleteVenue' : IDL.Func([IDL.Nat], [], []),
   'getAllBookings' : IDL.Func([], [IDL.Vec(Booking)], ['query']),
+  'getAllBooths' : IDL.Func([], [IDL.Vec(Booth)], ['query']),
+  'getAllCrowdSessions' : IDL.Func([], [IDL.Vec(CrowdSession)], ['query']),
+  'getAllDocuments' : IDL.Func([], [IDL.Vec(Document)], ['query']),
   'getAllEvents' : IDL.Func([], [IDL.Vec(Event)], ['query']),
+  'getAllPayments' : IDL.Func([], [IDL.Vec(Payment)], ['query']),
   'getAllVendors' : IDL.Func([], [IDL.Vec(Vendor)], ['query']),
   'getAllVenues' : IDL.Func([], [IDL.Vec(Venue)], ['query']),
   'getBooking' : IDL.Func([IDL.Nat], [Booking], ['query']),
   'getBookingsForEvent' : IDL.Func([IDL.Nat], [IDL.Vec(Booking)], ['query']),
+  'getBooth' : IDL.Func([IDL.Nat], [Booth], ['query']),
+  'getCrowdSessionsByZone' : IDL.Func(
+      [IDL.Text],
+      [IDL.Vec(CrowdSession)],
+      ['query'],
+    ),
+  'getDocument' : IDL.Func([IDL.Nat], [Document], ['query']),
   'getEvent' : IDL.Func([IDL.Nat], [Event], ['query']),
+  'getPayment' : IDL.Func([IDL.Nat], [Payment], ['query']),
   'getStats' : IDL.Func([], [Stats], ['query']),
+  'getUpcomingEvents' : IDL.Func([], [IDL.Vec(Event)], ['query']),
   'getVendor' : IDL.Func([IDL.Nat], [Vendor], ['query']),
   'getVenue' : IDL.Func([IDL.Nat], [Venue], ['query']),
+  'updateBooth' : IDL.Func([IDL.Nat, Booth], [], []),
+  'updateDocumentStatus' : IDL.Func([IDL.Nat, DocumentStatus], [], []),
   'updateEvent' : IDL.Func([IDL.Nat, Event], [], []),
+  'updatePaymentStatus' : IDL.Func([IDL.Nat, PaymentStatus], [], []),
   'updateVendor' : IDL.Func([IDL.Nat, Vendor], [], []),
   'updateVenue' : IDL.Func([IDL.Nat, Venue], [], []),
 });
@@ -76,6 +169,18 @@ export const idlService = IDL.Service({
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
+  const SafetyStatus = IDL.Variant({
+    'normal' : IDL.Null,
+    'caution' : IDL.Null,
+    'critical' : IDL.Null,
+  });
+  const CrowdSession = IDL.Record({
+    'safetyStatus' : SafetyStatus,
+    'occupancyPercentage' : IDL.Float64,
+    'zone' : IDL.Text,
+    'visitorCount' : IDL.Nat,
+    'timestamp' : IDL.Int,
+  });
   const BookingStatus = IDL.Variant({
     'cancelled' : IDL.Null,
     'pending' : IDL.Null,
@@ -86,6 +191,40 @@ export const idlFactory = ({ IDL }) => {
     'eventId' : IDL.Nat,
     'resourceId' : IDL.Nat,
     'isVendor' : IDL.Bool,
+  });
+  const BoothStatus = IDL.Variant({
+    'occupied' : IDL.Null,
+    'reserved' : IDL.Null,
+    'available' : IDL.Null,
+  });
+  const BoothSize = IDL.Variant({
+    'large' : IDL.Null,
+    'small' : IDL.Null,
+    'medium' : IDL.Null,
+  });
+  const Booth = IDL.Record({
+    'status' : BoothStatus,
+    'assignedVendor' : IDL.Opt(IDL.Text),
+    'size' : BoothSize,
+    'zone' : IDL.Text,
+    'number' : IDL.Nat,
+  });
+  const DocumentStatus = IDL.Variant({
+    'verified' : IDL.Null,
+    'pending' : IDL.Null,
+    'rejected' : IDL.Null,
+  });
+  const DocumentType = IDL.Variant({
+    'id' : IDL.Null,
+    'other' : IDL.Text,
+    'permit' : IDL.Null,
+    'license' : IDL.Null,
+  });
+  const Document = IDL.Record({
+    'status' : DocumentStatus,
+    'fileName' : IDL.Text,
+    'vendorId' : IDL.Nat,
+    'docType' : DocumentType,
   });
   const EventStatus = IDL.Variant({
     'upcoming' : IDL.Null,
@@ -100,6 +239,28 @@ export const idlFactory = ({ IDL }) => {
     'description' : IDL.Text,
     'venueName' : IDL.Text,
   });
+  const PaymentStatus = IDL.Variant({
+    'pending' : IDL.Null,
+    'paid' : IDL.Null,
+    'overdue' : IDL.Null,
+  });
+  const Currency = IDL.Variant({
+    'btc' : IDL.Null,
+    'eth' : IDL.Null,
+    'eur' : IDL.Null,
+    'gbp' : IDL.Null,
+    'icp' : IDL.Null,
+    'inr' : IDL.Null,
+    'usd' : IDL.Null,
+    'other' : IDL.Text,
+  });
+  const Payment = IDL.Record({
+    'status' : PaymentStatus,
+    'dueDate' : IDL.Int,
+    'currency' : Currency,
+    'vendorId' : IDL.Nat,
+    'amount' : IDL.Float64,
+  });
   const Vendor = IDL.Record({
     'name' : IDL.Text,
     'contactEmail' : IDL.Text,
@@ -112,31 +273,56 @@ export const idlFactory = ({ IDL }) => {
     'location' : IDL.Text,
   });
   const Stats = IDL.Record({
+    'totalBooths' : IDL.Nat,
     'upcomingEvents' : IDL.Nat,
     'totalEvents' : IDL.Nat,
+    'totalPayments' : IDL.Nat,
     'totalVenues' : IDL.Nat,
+    'totalVisitorsToday' : IDL.Nat,
+    'occupiedBooths' : IDL.Nat,
     'totalVendors' : IDL.Nat,
   });
   
   return IDL.Service({
+    'addCrowdSession' : IDL.Func([CrowdSession], [], []),
+    'assignBooth' : IDL.Func([IDL.Nat, IDL.Text], [], []),
     'createBooking' : IDL.Func([Booking], [IDL.Nat], []),
+    'createBooth' : IDL.Func([Booth], [IDL.Nat], []),
+    'createDocument' : IDL.Func([Document], [IDL.Nat], []),
     'createEvent' : IDL.Func([Event], [IDL.Nat], []),
+    'createPayment' : IDL.Func([Payment], [IDL.Nat], []),
     'createVendor' : IDL.Func([Vendor], [IDL.Nat], []),
     'createVenue' : IDL.Func([Venue], [IDL.Nat], []),
     'deleteEvent' : IDL.Func([IDL.Nat], [], []),
     'deleteVendor' : IDL.Func([IDL.Nat], [], []),
     'deleteVenue' : IDL.Func([IDL.Nat], [], []),
     'getAllBookings' : IDL.Func([], [IDL.Vec(Booking)], ['query']),
+    'getAllBooths' : IDL.Func([], [IDL.Vec(Booth)], ['query']),
+    'getAllCrowdSessions' : IDL.Func([], [IDL.Vec(CrowdSession)], ['query']),
+    'getAllDocuments' : IDL.Func([], [IDL.Vec(Document)], ['query']),
     'getAllEvents' : IDL.Func([], [IDL.Vec(Event)], ['query']),
+    'getAllPayments' : IDL.Func([], [IDL.Vec(Payment)], ['query']),
     'getAllVendors' : IDL.Func([], [IDL.Vec(Vendor)], ['query']),
     'getAllVenues' : IDL.Func([], [IDL.Vec(Venue)], ['query']),
     'getBooking' : IDL.Func([IDL.Nat], [Booking], ['query']),
     'getBookingsForEvent' : IDL.Func([IDL.Nat], [IDL.Vec(Booking)], ['query']),
+    'getBooth' : IDL.Func([IDL.Nat], [Booth], ['query']),
+    'getCrowdSessionsByZone' : IDL.Func(
+        [IDL.Text],
+        [IDL.Vec(CrowdSession)],
+        ['query'],
+      ),
+    'getDocument' : IDL.Func([IDL.Nat], [Document], ['query']),
     'getEvent' : IDL.Func([IDL.Nat], [Event], ['query']),
+    'getPayment' : IDL.Func([IDL.Nat], [Payment], ['query']),
     'getStats' : IDL.Func([], [Stats], ['query']),
+    'getUpcomingEvents' : IDL.Func([], [IDL.Vec(Event)], ['query']),
     'getVendor' : IDL.Func([IDL.Nat], [Vendor], ['query']),
     'getVenue' : IDL.Func([IDL.Nat], [Venue], ['query']),
+    'updateBooth' : IDL.Func([IDL.Nat, Booth], [], []),
+    'updateDocumentStatus' : IDL.Func([IDL.Nat, DocumentStatus], [], []),
     'updateEvent' : IDL.Func([IDL.Nat, Event], [], []),
+    'updatePaymentStatus' : IDL.Func([IDL.Nat, PaymentStatus], [], []),
     'updateVendor' : IDL.Func([IDL.Nat, Vendor], [], []),
     'updateVenue' : IDL.Func([IDL.Nat, Venue], [], []),
   });

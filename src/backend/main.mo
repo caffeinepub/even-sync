@@ -4,9 +4,11 @@ import Iter "mo:core/Iter";
 import Nat "mo:core/Nat";
 import Text "mo:core/Text";
 import Runtime "mo:core/Runtime";
+import Int "mo:core/Int";
 import Time "mo:core/Time";
 import Order "mo:core/Order";
-import Int "mo:core/Int";
+
+
 
 actor {
   // Types
@@ -51,29 +53,120 @@ actor {
     status : BookingStatus;
   };
 
+  // Booth Types
+  type BoothSize = {
+    #small;
+    #medium;
+    #large;
+  };
+
+  type BoothStatus = {
+    #available;
+    #occupied;
+    #reserved;
+  };
+
+  type Booth = {
+    number : Nat;
+    size : BoothSize;
+    zone : Text;
+    status : BoothStatus;
+    assignedVendor : ?Text;
+  };
+
+  // Payment Types
+  type Currency = {
+    #usd;
+    #eur;
+    #gbp;
+    #inr;
+    #btc;
+    #eth;
+    #icp;
+    #other : Text;
+  };
+
+  type PaymentStatus = {
+    #paid;
+    #pending;
+    #overdue;
+  };
+
+  type Payment = {
+    vendorId : Nat;
+    amount : Float;
+    currency : Currency;
+    status : PaymentStatus;
+    dueDate : Int;
+  };
+
+  // Document Types
+  type DocumentType = {
+    #license;
+    #id;
+    #permit;
+    #other : Text;
+  };
+
+  type DocumentStatus = {
+    #pending;
+    #verified;
+    #rejected;
+  };
+
+  type Document = {
+    vendorId : Nat;
+    docType : DocumentType;
+    fileName : Text;
+    status : DocumentStatus;
+  };
+
+  // Crowd Monitoring Types
+  type SafetyStatus = {
+    #normal;
+    #caution;
+    #critical;
+  };
+
+  type CrowdSession = {
+    timestamp : Int;
+    visitorCount : Nat;
+    zone : Text;
+    occupancyPercentage : Float;
+    safetyStatus : SafetyStatus;
+  };
+
+  // Stats
   type Stats = {
     totalEvents : Nat;
     totalVenues : Nat;
     totalVendors : Nat;
+    totalBooths : Nat;
+    occupiedBooths : Nat;
+    totalVisitorsToday : Nat;
+    totalPayments : Nat;
     upcomingEvents : Nat;
-  };
-
-  // Comparisons for sorting
-  module Event {
-    public func compareByDate(e1 : Event, e2 : Event) : Order.Order {
-      Int.compare(e1.date, e2.date);
-    };
   };
 
   // Persistent storage
   var nextEventId = 1;
   var nextVenueId = 1;
   var nextVendorId = 1;
+  var nextBoothId = 1;
+  var nextPaymentId = 1;
+  var nextDocumentId = 1;
+  var nextCrowdSessionId = 1;
 
   let events = Map.empty<Nat, Event>();
   let venues = Map.empty<Nat, Venue>();
   let vendors = Map.empty<Nat, Vendor>();
   let bookings = Map.empty<Nat, Booking>();
+
+  // New modules persistent storage
+  let booths = Map.empty<Nat, Booth>();
+  let payments = Map.empty<Nat, Payment>();
+  let documents = Map.empty<Nat, Document>();
+  let crowdSessions = Map.empty<Nat, CrowdSession>();
 
   // Events
   public shared ({ caller }) func createEvent(event : Event) : async Nat {
@@ -92,6 +185,10 @@ actor {
 
   public query ({ caller }) func getAllEvents() : async [Event] {
     events.values().toArray();
+  };
+
+  public query ({ caller }) func getUpcomingEvents() : async [Event] {
+    events.values().toArray().filter(func(e) { e.status == #upcoming });
   };
 
   public shared ({ caller }) func updateEvent(id : Nat, event : Event) : async () {
@@ -162,7 +259,7 @@ actor {
     vendors.remove(id);
   };
 
-  // Bookings
+  // Bookings (resource / vendor bookings)
   public shared ({ caller }) func createBooking(booking : Booking) : async Nat {
     let id = bookings.size();
     bookings.add(id, booking);
@@ -184,18 +281,132 @@ actor {
     bookings.values().toArray().filter(func(b) { b.eventId == eventId });
   };
 
+  // ---- New Modules ----
+
+  // Booth Management
+  public shared ({ caller }) func createBooth(booth : Booth) : async Nat {
+    let id = nextBoothId;
+    nextBoothId += 1;
+    booths.add(id, booth);
+    id;
+  };
+
+  public query ({ caller }) func getBooth(id : Nat) : async Booth {
+    switch (booths.get(id)) {
+      case (null) { Runtime.trap("Booth not found") };
+      case (?booth) { booth };
+    };
+  };
+
+  public query ({ caller }) func getAllBooths() : async [Booth] {
+    booths.values().toArray();
+  };
+
+  public shared ({ caller }) func updateBooth(id : Nat, booth : Booth) : async () {
+    if (not booths.containsKey(id)) { Runtime.trap("Booth not found") };
+    booths.add(id, booth);
+  };
+
+  public shared ({ caller }) func assignBooth(id : Nat, vendorName : Text) : async () {
+    switch (booths.get(id)) {
+      case (null) { Runtime.trap("Booth not found") };
+      case (?booth) {
+        booths.add(id, { booth with status = #occupied; assignedVendor = ?vendorName });
+      };
+    };
+  };
+
+  // Payment Tracking
+  public shared ({ caller }) func createPayment(payment : Payment) : async Nat {
+    let id = nextPaymentId;
+    nextPaymentId += 1;
+    payments.add(id, payment);
+    id;
+  };
+
+  public query ({ caller }) func getPayment(id : Nat) : async Payment {
+    switch (payments.get(id)) {
+      case (null) { Runtime.trap("Payment not found") };
+      case (?payment) { payment };
+    };
+  };
+
+  public query ({ caller }) func getAllPayments() : async [Payment] {
+    payments.values().toArray();
+  };
+
+  public shared ({ caller }) func updatePaymentStatus(id : Nat, status : PaymentStatus) : async () {
+    switch (payments.get(id)) {
+      case (null) { Runtime.trap("Payment not found") };
+      case (?payment) {
+        payments.add(id, { payment with status });
+      };
+    };
+  };
+
+  // Document Verification
+  public shared ({ caller }) func createDocument(document : Document) : async Nat {
+    let id = nextDocumentId;
+    nextDocumentId += 1;
+    documents.add(id, document);
+    id;
+  };
+
+  public query ({ caller }) func getDocument(id : Nat) : async Document {
+    switch (documents.get(id)) {
+      case (null) { Runtime.trap("Document not found") };
+      case (?document) { document };
+    };
+  };
+
+  public query ({ caller }) func getAllDocuments() : async [Document] {
+    documents.values().toArray();
+  };
+
+  public shared ({ caller }) func updateDocumentStatus(id : Nat, status : DocumentStatus) : async () {
+    switch (documents.get(id)) {
+      case (null) { Runtime.trap("Document not found") };
+      case (?document) {
+        documents.add(id, { document with status });
+      };
+    };
+  };
+
+  // Crowd Monitoring
+  public shared ({ caller }) func addCrowdSession(session : CrowdSession) : async () {
+    crowdSessions.add(nextCrowdSessionId, session);
+    nextCrowdSessionId += 1;
+  };
+
+  public query ({ caller }) func getAllCrowdSessions() : async [CrowdSession] {
+    crowdSessions.values().toArray();
+  };
+
+  public query ({ caller }) func getCrowdSessionsByZone(zone : Text) : async [CrowdSession] {
+    crowdSessions.values().toArray().filter(func(s) { s.zone == zone });
+  };
+
   // Dashboard Stats
   public query ({ caller }) func getStats() : async Stats {
     let totalEvents = events.size();
     let totalVenues = venues.size();
     let totalVendors = vendors.size();
-    let upcomingEvents = events.values().toArray().filter(
-      func(e) { e.status == #upcoming }
+    let totalBooths = booths.size();
+    let occupiedBooths = booths.values().toArray().filter(func(b) { b.status == #occupied }).size();
+    let totalVisitorsToday = crowdSessions.values().toArray().filter(
+      func(s) { Time.now() - s.timestamp < (24 * 60 * 60 * 1_000_000_000) }
     ).size();
+    let totalPayments = payments.size();
+    let upcomingEvents = events.values().toArray().filter(func(e) { e.status == #upcoming }).size();
+
     {
       totalEvents;
       totalVenues;
       totalVendors;
+      totalBooths;
+      occupiedBooths;
+      totalVisitorsToday;
+      totalPayments;
       upcomingEvents;
     };
   };

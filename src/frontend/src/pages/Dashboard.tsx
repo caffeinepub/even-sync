@@ -8,7 +8,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Calendar, MapPin, TrendingUp, Users } from "lucide-react";
+import {
+  Activity,
+  Calendar,
+  LayoutGrid,
+  MapPin,
+  TrendingUp,
+  Users,
+} from "lucide-react";
 import { EventStatus } from "../backend.d";
 import { useGetAllEvents, useGetStats } from "../hooks/useQueries";
 
@@ -102,13 +109,29 @@ export function Dashboard() {
       color: "text-purple-600",
       bg: "bg-purple-50",
     },
+    {
+      label: "Booth Occupancy",
+      value: stats
+        ? `${Number(stats.totalBooths) > 0 ? Math.round((Number(stats.occupiedBooths) / Number(stats.totalBooths)) * 100) : 0}%`
+        : "72%",
+      icon: LayoutGrid,
+      color: "text-indigo-600",
+      bg: "bg-indigo-50",
+    },
+    {
+      label: "Visitors Today",
+      value: stats ? Number(stats.totalVisitorsToday) : 1445,
+      icon: Activity,
+      color: "text-rose-600",
+      bg: "bg-rose-50",
+    },
   ];
 
   return (
     <div className="space-y-6">
       {/* KPI Cards */}
       <div
-        className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4"
+        className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4"
         data-ocid="dashboard.section"
       >
         {kpis.map((kpi, i) => {
